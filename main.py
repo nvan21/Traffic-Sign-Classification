@@ -1,7 +1,3 @@
-# Needs to run through training, evaluation, and plot creation for different test cases
-# Should be able to create a new dataset each time with different transforms
-# Should have a separate training loop where you can pass in the CNN model and the dataset
-# Should save the model weights in different folders
 from CNN import create_model
 from data_preprocessing import create_dataloaders
 from trainer import CNNTrainer
