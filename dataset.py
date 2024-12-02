@@ -25,7 +25,11 @@ class ImageDataset(Dataset):
         label_path = os.path.join(self.label_dir, self.label_files[idx])
         with open(label_path, "r") as f:
             # Read the class label
-            class_id = int(f.readline().split()[0])
+            try:
+                class_id = int(f.readline().split()[0])
+            except:
+                print(f"Skipping file: {img_path}")
+                return None
 
         # Apply transformations
         img = self.transform(img)

@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 class BaseModel(ABC):
     @abstractmethod
-    def model_init(self, params):
+    def model_init(self):
         """
         This method is responsible for taking in model hyperparameters and instantiating it.
         """
@@ -18,7 +18,7 @@ class BaseModel(ABC):
         pass
 
     @abstractmethod
-    def eval(self):
+    def eval(self, test_loader: DataLoader):
         """
         This method is responsible for running the model evaluation. It should save
         the training metrics as a pickle file.

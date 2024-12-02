@@ -128,5 +128,5 @@ class CNN(BaseModel, nn.Module):
                 f"Validation - Loss: {val_loss / len(validate_loader):.4f}, Accuracy: {val_accuracy:.2f}%\n"
             )
 
-    def eval(self):
+    def eval(self, test_loader: torch.utils.data.DataLoader):
         pass
