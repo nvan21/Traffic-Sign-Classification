@@ -1,6 +1,8 @@
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import accuracy_score
+from scipy.stats import uniform
+
 from torch.utils.data import DataLoader
 import torch
 import numpy as np
@@ -11,21 +13,26 @@ from model import BaseModel
 class SVM(BaseModel):
     def __init__(self):
         super().__init__()
-        self.param_grid = {
-            "C": [0.1, 1, 10, 100],
-            "gamma": ["scale", "auto", 0.1, 1],
-            "kernel": ["rbf", "linear"],
+        self.param_distributions = {
+            "C": uniform(
+                0.1, 100
+            ),  # C parameter: uniform distribution between 0.1 and 100
+            "gamma": uniform(
+                0.01, 1
+            ),  # gamma parameter: uniform distribution between 0.01 and 1
+            "kernel": ["linear", "rbf", "poly", "sigmoid"],  # kernel choices
         }
 
     def model_init(self):
         self.grid_search = RandomizedSearchCV(
             SVC(),
-            param_distributions=self.param_grid,
+            param_distributions=self.param_distributions,
             cv=5,
             n_iter=10,
             scoring="accuracy",
             verbose=2,
-            n_jobs=-1,
+            random_state=42,
+            n_jobs=1,
         )
         self.model: SVC = None
 
