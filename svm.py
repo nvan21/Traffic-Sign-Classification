@@ -1,5 +1,4 @@
 from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import accuracy_score
 from scipy.stats import uniform
 
@@ -13,28 +12,12 @@ from model import BaseModel
 class SVM(BaseModel):
     def __init__(self):
         super().__init__()
-        self.param_distributions = {
-            "C": uniform(
-                0.1, 100
-            ),  # C parameter: uniform distribution between 0.1 and 100
-            "gamma": uniform(
-                0.01, 1
-            ),  # gamma parameter: uniform distribution between 0.01 and 1
-            "kernel": ["linear", "rbf", "poly", "sigmoid"],  # kernel choices
-        }
+        self.C = 5
+        self.gamma = 0.0001
+        self.kernel = "rbf"
 
     def model_init(self):
-        self.grid_search = RandomizedSearchCV(
-            SVC(),
-            param_distributions=self.param_distributions,
-            cv=5,
-            n_iter=10,
-            scoring="accuracy",
-            verbose=2,
-            random_state=42,
-            n_jobs=1,
-        )
-        self.model: SVC = None
+        self.model = SVC(C=self.C, gamma=self.gamma, kernel=self.kernel)
 
     def train(self, train_loader: DataLoader, validate_loader: DataLoader):
         X_train, y_train = self._loader_to_numpy(loader=train_loader)
@@ -43,11 +26,10 @@ class SVM(BaseModel):
         X = np.vstack((X_train, X_validate))
         y = np.hstack((y_train, y_validate))
 
-        # Find the best model hyperparameters
-        self.grid_search.fit(X=X, y=y)
-
-        # Select the best model
-        self.model = self.grid_search.best_estimator_
+        self.model.fit(X=X, y=y)
+        y_train_pred = self.model.predict(X=X)
+        train_accuracy = accuracy_score(y, y_train_pred)
+        print(f"Train accuracy with best model: {train_accuracy}")
 
     def eval(self, test_loader: DataLoader):
         # Predict on the test set

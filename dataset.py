@@ -28,7 +28,6 @@ class ImageDataset(Dataset):
             try:
                 class_id = int(f.readline().split()[0])
             except:
-                print(f"Skipping file: {img_path}")
                 return None
 
         # Apply transformations

@@ -1,6 +1,6 @@
 import os
 from torchvision import transforms
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, ConcatDataset
 import torch
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -10,6 +10,8 @@ import hyperparameters
 from model import BaseModel
 from cnn import CNN
 from svm import SVM
+from knn import KNN
+from resnet import ResNet
 
 cnn_params = hyperparameters.CNNHyperparameters()
 resnet_params = hyperparameters.ResNetHyperparameters()
@@ -25,6 +27,13 @@ BASE_TRANSFORM = transforms.Compose(
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]
 )
+RESNET_TRANSFORM = transforms.Compose(
+    [
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+    ]
+)
 EXPERIMENTS = {
     # "base_cnn": {
     #     "data_path": DATA_PATH,
@@ -33,13 +42,28 @@ EXPERIMENTS = {
     #     "model": CNN(),
     #     "params": cnn_params,
     # },
-    "base_svm": {
+    # "base_svm": {
+    #     "data_path": DATA_PATH,
+    #     "batch_size": 32,
+    #     "transform": BASE_TRANSFORM,
+    #     "do_pca": True,
+    #     "n_components": 50,
+    #     "model": SVM(),
+    # },
+    # "base_knn": {
+    #     "data_path": DATA_PATH,
+    #     "batch_size": 32,
+    #     "transform": BASE_TRANSFORM,
+    #     "do_pca": True,
+    #     "n_components": 50,
+    #     "model": KNN(),
+    # },
+    "base_resnet": {
         "data_path": DATA_PATH,
         "batch_size": 32,
         "transform": BASE_TRANSFORM,
-        "do_pca": True,
-        "n_components": 50,
-        "model": SVM(),
+        "model": ResNet(),
+        "have_validate": False,
     },
 }
 
@@ -52,7 +76,11 @@ class Experiment:
         self.batch_size = batch_size
 
     def preprocessing(
-        self, transform: transforms, do_pca: bool = False, n_components: int = 50
+        self,
+        transform: transforms,
+        do_pca: bool = False,
+        n_components: int = 50,
+        have_validate: bool = False,
     ):
         train_path = os.path.join(self.data_path, "train")
         validate_path = os.path.join(self.data_path, "valid")
@@ -129,6 +157,16 @@ class Experiment:
                 shuffle=False,
                 collate_fn=self._collate_fn,
             )
+
+        if have_validate:
+            combined_dataset = ConcatDataset([train_dataset, validate_dataset])
+            self.test_loader = DataLoader(
+                dataset=combined_dataset,
+                batch_size=self.batch_size,
+                shuffle=False,
+                collate_fn=self._collate_fn,
+            )
+            self.validate_loader = None
 
     def create_model(self, model: BaseModel):
         self.model = model
