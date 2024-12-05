@@ -53,6 +53,7 @@ class CNN(BaseModel, nn.Module):
 
         # Create sequential model
         self.model = nn.Sequential(*layers)
+        # self.model.apply(self._init_weights)
         print(self.model)
 
         # Create optimizer
@@ -100,33 +101,24 @@ class CNN(BaseModel, nn.Module):
                 f"Training - Loss: {train_loss / len(train_loader):.4f}, Accuracy: {train_accuracy:.2f}%"
             )
 
-            # Validation phase
-            self.model.eval()  # Set the model to evaluation mode
-            val_loss = 0.0
-            val_correct = 0
-            val_total = 0
-
-            with torch.no_grad():  # Disable gradient computation for validation
-                for inputs, targets in tqdm(validate_loader, desc="Validation"):
-                    # Move data to the device
-                    inputs, targets = inputs.to(self.device), targets.to(self.device)
-
-                    # Forward pass
-                    outputs = self.model(inputs)
-
-                    # Compute loss
-                    loss = self.loss_fn(outputs, targets)
-
-                    # Update validation statistics
-                    val_loss += loss.item()
-                    _, predicted = outputs.max(1)
-                    val_total += targets.size(0)
-                    val_correct += predicted.eq(targets).sum().item()
-
-            val_accuracy = 100.0 * val_correct / val_total
-            print(
-                f"Validation - Loss: {val_loss / len(validate_loader):.4f}, Accuracy: {val_accuracy:.2f}%\n"
-            )
-
     def eval(self, test_loader: torch.utils.data.DataLoader):
-        pass
+        self.model.eval()
+        correct = 0
+        total = 0
+
+        with torch.no_grad():
+            for images, labels in test_loader:
+                images, labels = images.to(self.device), labels.to(self.device)
+                outputs = self.forward(images)
+                _, preds = torch.max(outputs, 1)
+                correct += (preds == labels).sum().item()
+                total += labels.size(0)
+
+        print(f"Testing accuracy: {correct / total * 100:.2f}")
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+            nn.init.kaiming_normal_(m.weight, mode="fan_in", nonlinearity="relu")
+
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)

@@ -12,6 +12,7 @@ from cnn import CNN
 from svm import SVM
 from knn import KNN
 from resnet import ResNet
+from vit import ViT
 
 cnn_params = hyperparameters.CNNHyperparameters()
 resnet_params = hyperparameters.ResNetHyperparameters()
@@ -41,6 +42,7 @@ EXPERIMENTS = {
     #     "transform": BASE_TRANSFORM,
     #     "model": CNN(),
     #     "params": cnn_params,
+    #     "have_validate": False,
     # },
     # "base_svm": {
     #     "data_path": DATA_PATH,
@@ -58,11 +60,18 @@ EXPERIMENTS = {
     #     "n_components": 50,
     #     "model": KNN(),
     # },
-    "base_resnet": {
+    # "base_resnet": {
+    #     "data_path": DATA_PATH,
+    #     "batch_size": 32,
+    #     "transform": BASE_TRANSFORM,
+    #     "model": ResNet(),
+    #     "have_validate": False,
+    # },
+    "base_vit": {
         "data_path": DATA_PATH,
         "batch_size": 32,
         "transform": BASE_TRANSFORM,
-        "model": ResNet(),
+        "model": ViT(),
         "have_validate": False,
     },
 }
