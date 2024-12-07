@@ -6,21 +6,17 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from dataset import ImageDataset
-import hyperparameters
 from model import BaseModel
+from logger import Logger
 from cnn import CNN
 from svm import SVM
 from knn import KNN
 from resnet import ResNet
 from vit import ViT
 
-cnn_params = hyperparameters.CNNHyperparameters()
-resnet_params = hyperparameters.ResNetHyperparameters()
-vit_params = hyperparameters.ViTHyperparameters()
-svm_params = hyperparameters.SVMHyperparameters()
-knn_params = hyperparameters.KNNHyperparameters()
 
 DATA_PATH = "./data/car"
+SAVE_PATH = "./runs"
 BASE_TRANSFORM = transforms.Compose(
     [
         transforms.Resize((224, 224)),
@@ -36,60 +32,60 @@ RESNET_TRANSFORM = transforms.Compose(
     ]
 )
 EXPERIMENTS = {
-    # "base_cnn": {
-    #     "data_path": DATA_PATH,
-    #     "batch_size": 32,
-    #     "transform": BASE_TRANSFORM,
-    #     "model": CNN(),
-    #     "params": cnn_params,
-    #     "have_validate": False,
-    # },
-    # "base_svm": {
-    #     "data_path": DATA_PATH,
-    #     "batch_size": 32,
-    #     "transform": BASE_TRANSFORM,
-    #     "do_pca": True,
-    #     "n_components": 50,
-    #     "model": SVM(),
-    # },
-    # "base_knn": {
-    #     "data_path": DATA_PATH,
-    #     "batch_size": 32,
-    #     "transform": BASE_TRANSFORM,
-    #     "do_pca": True,
-    #     "n_components": 50,
-    #     "model": KNN(),
-    # },
-    # "base_resnet": {
-    #     "data_path": DATA_PATH,
-    #     "batch_size": 32,
-    #     "transform": BASE_TRANSFORM,
-    #     "model": ResNet(),
-    #     "have_validate": False,
-    # },
+    "base_cnn": {
+        "data_path": DATA_PATH,
+        "save_path": SAVE_PATH,
+        "batch_size": 32,
+        "transform": BASE_TRANSFORM,
+        "model": CNN(),
+    },
+    "base_svm": {
+        "data_path": DATA_PATH,
+        "save_path": SAVE_PATH,
+        "batch_size": 32,
+        "transform": BASE_TRANSFORM,
+        "do_pca": True,
+        "n_components": 50,
+        "model": SVM(),
+    },
+    "base_knn": {
+        "data_path": DATA_PATH,
+        "save_path": SAVE_PATH,
+        "batch_size": 32,
+        "transform": BASE_TRANSFORM,
+        "do_pca": True,
+        "n_components": 50,
+        "model": KNN(),
+    },
+    "base_resnet": {
+        "data_path": DATA_PATH,
+        "save_path": SAVE_PATH,
+        "batch_size": 32,
+        "transform": BASE_TRANSFORM,
+        "model": ResNet(),
+    },
     "base_vit": {
         "data_path": DATA_PATH,
+        "save_path": SAVE_PATH,
         "batch_size": 32,
         "transform": BASE_TRANSFORM,
         "model": ViT(),
-        "have_validate": False,
     },
 }
 
 
 class Experiment:
     def __init__(self, id: str, data_path: str, batch_size: int):
-        #! Still needs save protocols
         self.id = id
         self.data_path = data_path
         self.batch_size = batch_size
+        self.logger = Logger()
 
     def preprocessing(
         self,
         transform: transforms,
         do_pca: bool = False,
         n_components: int = 50,
-        have_validate: bool = False,
     ):
         train_path = os.path.join(self.data_path, "train")
         validate_path = os.path.join(self.data_path, "valid")
@@ -167,19 +163,9 @@ class Experiment:
                 collate_fn=self._collate_fn,
             )
 
-        if have_validate:
-            combined_dataset = ConcatDataset([train_dataset, validate_dataset])
-            self.test_loader = DataLoader(
-                dataset=combined_dataset,
-                batch_size=self.batch_size,
-                shuffle=False,
-                collate_fn=self._collate_fn,
-            )
-            self.validate_loader = None
-
     def create_model(self, model: BaseModel):
         self.model = model
-        self.model.model_init()
+        self.model.model_init(logger=self.logger)
 
     def _transform_to_pca(self, loader: DataLoader, scaler: StandardScaler, pca: PCA):
         # Collect all images from the training set for PCA

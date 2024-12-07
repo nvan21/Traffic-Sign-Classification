@@ -1,4 +1,4 @@
-from cnn import CNN
+import os
 from experiment import Experiment, EXPERIMENTS
 
 
@@ -12,3 +12,6 @@ for id, args in EXPERIMENTS.items():
     exp.create_model(model=args["model"])
     exp.model.train(train_loader=exp.train_loader, validate_loader=exp.validate_loader)
     exp.model.eval(test_loader=exp.test_loader)
+    save_path = os.path.join(args["save_path"], id)
+    os.makedirs(save_path, exist_ok=True)
+    exp.model.save(save_path=save_path)
