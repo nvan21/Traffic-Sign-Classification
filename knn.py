@@ -30,7 +30,9 @@ class KNN(BaseModel):
             scoring="accuracy",
             verbose=3,
         )
-        self.model: KNeighborsClassifier = None
+        self.model = KNeighborsClassifier(
+            metric="manhattan", n_neighbors=5, weights="distance"
+        )
 
         self.logger = logger
 
@@ -42,15 +44,19 @@ class KNN(BaseModel):
         y = np.hstack((y_train, y_validate))
 
         # Find the best model hyperparameters
-        self.grid_search.fit(X=X, y=y)
+        # self.grid_search.fit(X=X, y=y)
 
         # Select the best model
-        self.model = self.grid_search.best_estimator_
+        # self.model = self.grid_search.best_estimator_
+        # print(self.grid_search.best_estimator_)
+
+        # Train the best model
+        self.model.fit(X=X, y=y)
 
         # Print out training accuracy
         y_train_pred = self.model.predict(X=X)
         train_accuracy = accuracy_score(y, y_train_pred)
-        print(f"Train accuracy with best model: {train_accuracy}")
+        print(f"Train accuracy with best model: {train_accuracy * 100}%")
 
     def eval(self, test_loader: DataLoader):
         # Predict on the test set
@@ -59,7 +65,7 @@ class KNN(BaseModel):
         y_test_pred = self.model.predict(X=X_test)
         inference_time = self.logger.stop_timer() / len(X_test)
         test_accuracy = accuracy_score(y_test, y_test_pred)
-        print(f"Test accuracy with best model: {test_accuracy}")
+        print(f"Test accuracy with best model: {test_accuracy*100}%")
 
         self.logger.log_test(
             y_true=y_test, y_pred=y_test_pred, inference_time=inference_time

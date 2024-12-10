@@ -13,9 +13,10 @@ class ResNet(BaseModel):
     def __init__(self):
         super().__init__()
 
-        self.lr = 0.001
-        self.num_epochs = 10
-        self.num_classes = 15
+        self.res_lr = 0.0001
+        self.fc_lr = 0.001
+        self.num_epochs = 5
+        self.num_classes = 43
 
         self.loss_fn = nn.CrossEntropyLoss()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,18 +24,36 @@ class ResNet(BaseModel):
     def model_init(self, logger):
         self.model = models.resnet50(pretrained=True)
 
-        # Freeze all layers
+        # Freeze all layers initially
         for param in self.model.parameters():
             param.requires_grad = False
 
         # Replace the final fully connected layer
         self.model.fc = nn.Linear(self.model.fc.in_features, self.num_classes)
 
+        # Unfreeze the last two ResNet blocks
+        for param in self.model.layer3.parameters():
+            param.requires_grad = True
+        for param in self.model.layer4.parameters():
+            param.requires_grad = True
+
+        # Move model to the right device
         self.model.to(self.device)
 
-        # Specify fully connected layer parameters to optimize
-        params = [param for param in self.model.fc.parameters()]
-        self.optimizer = torch.optim.Adam(params, lr=self.lr)
+        # Specify layers to optimize
+        self.optimizer = torch.optim.Adam(
+            [
+                {
+                    "params": self.model.layer3.parameters(),
+                    "lr": self.res_lr,
+                },  # Fine-tuned layers
+                {
+                    "params": self.model.layer4.parameters(),
+                    "lr": self.res_lr,
+                },  # Fine-tuned layers
+                {"params": self.model.fc.parameters(), "lr": self.fc_lr},  # New head
+            ]
+        )
 
         self.logger = logger
 

@@ -13,9 +13,10 @@ class ViT(BaseModel):
     def __init__(self):
         super().__init__()
 
-        self.lr = 0.001
+        self.vit_lr = 0.0001
+        self.fc_lr = 0.001
         self.num_epochs = 10
-        self.num_classes = 15
+        self.num_classes = 43
 
         self.loss_fn = nn.CrossEntropyLoss()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,15 +34,30 @@ class ViT(BaseModel):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        # Unfreeze only the classification head
+        # Unfreeze the classification head
         for param in self.model.heads[0].parameters():
             param.requires_grad = True
 
+        # Unfreeze the last 4 transformer blocks
+        for block in self.model.encoder.layers[-4:]:
+            for param in block.parameters():
+                param.requires_grad = True
+
         self.model.to(self.device)
 
-        # Specify fully connected layer parameters to optimize
-        params = [param for param in self.model.heads[0].parameters()]
-        self.optimizer = torch.optim.Adam(params, lr=self.lr)
+        # Specify parameters to optimize
+        self.optimizer = torch.optim.Adam(
+            [
+                {
+                    "params": self.model.encoder.layers[-4:].parameters(),
+                    "lr": self.vit_lr,
+                },  # Fine-tuned layers
+                {
+                    "params": self.model.heads[0].parameters(),
+                    "lr": self.fc_lr,
+                },  # New head
+            ]
+        )
 
         # Create logger
         self.logger = logger

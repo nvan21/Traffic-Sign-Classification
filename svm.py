@@ -1,4 +1,4 @@
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score
 from scipy.stats import uniform
 
@@ -7,6 +7,7 @@ import torch
 import numpy as np
 import os
 import pickle
+from tqdm import tqdm
 
 from model import BaseModel
 
@@ -14,15 +15,14 @@ from model import BaseModel
 class SVM(BaseModel):
     def __init__(self):
         super().__init__()
-        self.C = 5
-        self.gamma = 0.0001
-        self.kernel = "rbf"
+        self.C = 1
 
     def model_init(self, logger):
-        self.model = SVC(C=self.C, gamma=self.gamma, kernel=self.kernel)
+        self.model = LinearSVC(C=self.C)
         self.logger = logger
 
     def train(self, train_loader: DataLoader, validate_loader: DataLoader):
+        print("Starting SVM training...")
         X_train, y_train = self._loader_to_numpy(loader=train_loader)
         X_validate, y_validate = self._loader_to_numpy(loader=validate_loader)
 
@@ -32,7 +32,7 @@ class SVM(BaseModel):
         self.model.fit(X=X, y=y)
         y_train_pred = self.model.predict(X=X)
         train_accuracy = accuracy_score(y, y_train_pred)
-        print(f"Train accuracy with best model: {train_accuracy}")
+        print(f"Train accuracy with best model: {train_accuracy * 100:.2f}%")
 
     def eval(self, test_loader: DataLoader):
         # Predict on the test set
@@ -41,7 +41,7 @@ class SVM(BaseModel):
         y_test_pred = self.model.predict(X=X_test)
         inference_time = self.logger.stop_timer() / len(X_test)
         test_accuracy = accuracy_score(y_test, y_test_pred)
-        print(f"Test accuracy with best model: {test_accuracy}")
+        print(f"Test accuracy with best model: {test_accuracy * 100:.2f}%")
 
         self.logger.log_test(
             y_true=y_test, y_pred=y_test_pred, inference_time=inference_time
@@ -56,7 +56,7 @@ class SVM(BaseModel):
     def _loader_to_numpy(self, loader: DataLoader) -> tuple[np.ndarray, np.ndarray]:
         x_list, y_list = [], []
 
-        for batch in loader:
+        for batch in tqdm(loader, desc="Converting data loader to numpy"):
             features, labels = batch
             x_list.append(features)
             y_list.append(labels)

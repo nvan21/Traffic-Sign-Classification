@@ -1,9 +1,13 @@
-import os
-from torchvision import transforms
-from torch.utils.data import DataLoader, TensorDataset, ConcatDataset
+import pathlib
+import re
+from torchvision import transforms, datasets
+from torch.utils.data import DataLoader, TensorDataset, ConcatDataset, random_split
 import torch
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, IncrementalPCA
 from sklearn.preprocessing import StandardScaler
+from PIL import Image
+import numpy as np
+from tqdm import tqdm
 
 from dataset import ImageDataset
 from model import BaseModel
@@ -14,8 +18,12 @@ from knn import KNN
 from resnet import ResNet
 from vit import ViT
 
+import warnings
 
-DATA_PATH = "./data/car"
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+
+DATA_PATHS = ["./Data/Train", "./Data/train_augment"]
 SAVE_PATH = "./runs"
 BASE_TRANSFORM = transforms.Compose(
     [
@@ -32,158 +40,151 @@ RESNET_TRANSFORM = transforms.Compose(
     ]
 )
 EXPERIMENTS = {
-    "base_cnn": {
-        "data_path": DATA_PATH,
-        "save_path": SAVE_PATH,
-        "batch_size": 32,
-        "transform": BASE_TRANSFORM,
-        "model": CNN(),
-    },
-    "base_svm": {
-        "data_path": DATA_PATH,
-        "save_path": SAVE_PATH,
-        "batch_size": 32,
-        "transform": BASE_TRANSFORM,
-        "do_pca": True,
-        "n_components": 50,
-        "model": SVM(),
-    },
-    "base_knn": {
-        "data_path": DATA_PATH,
-        "save_path": SAVE_PATH,
-        "batch_size": 32,
-        "transform": BASE_TRANSFORM,
-        "do_pca": True,
-        "n_components": 50,
-        "model": KNN(),
-    },
+    # "base_cnn": {
+    #     "data_paths": DATA_PATHS,
+    #     "save_path": SAVE_PATH,
+    #     "batch_size": 64,
+    #     "transform": BASE_TRANSFORM,
+    #     "model": CNN(),
+    # },
+    # "base_svm": {
+    #     "data_paths": DATA_PATHS,
+    #     "save_path": SAVE_PATH,
+    #     "batch_size": 64,
+    #     "transform": BASE_TRANSFORM,
+    #     "do_pca": True,
+    #     "n_components": 150,
+    #     "model": SVM(),
+    # },
+    # "base_knn": {
+    #     "data_paths": DATA_PATHS,
+    #     "save_path": SAVE_PATH,
+    #     "batch_size": 64,
+    #     "transform": BASE_TRANSFORM,
+    #     "do_pca": True,
+    #     "n_components": 150,
+    #     "model": KNN(),
+    # },
     "base_resnet": {
-        "data_path": DATA_PATH,
+        "data_paths": DATA_PATHS,
         "save_path": SAVE_PATH,
-        "batch_size": 32,
-        "transform": BASE_TRANSFORM,
+        "batch_size": 64,
+        "transform": RESNET_TRANSFORM,
         "model": ResNet(),
     },
     "base_vit": {
-        "data_path": DATA_PATH,
+        "data_paths": DATA_PATHS,
         "save_path": SAVE_PATH,
-        "batch_size": 32,
-        "transform": BASE_TRANSFORM,
+        "batch_size": 64,
+        "transform": RESNET_TRANSFORM,
         "model": ViT(),
     },
 }
 
 
 class Experiment:
-    def __init__(self, id: str, data_path: str, batch_size: int):
+    def __init__(self, id: str, data_paths: str, batch_size: int):
         self.id = id
-        self.data_path = data_path
+        self.data_paths = data_paths
         self.batch_size = batch_size
         self.logger = Logger()
 
     def preprocessing(
-        self,
-        transform: transforms,
-        do_pca: bool = False,
-        n_components: int = 50,
+        self, transform: transforms, do_pca: bool = False, n_components: int = 50
     ):
-        train_path = os.path.join(self.data_path, "train")
-        validate_path = os.path.join(self.data_path, "valid")
-        test_path = os.path.join(self.data_path, "test")
+        # Make ImageFolder datasets for each augmented image path
+        image_datasets = []
+        for path in self.data_paths:
+            image_datasets.append(datasets.ImageFolder(path, transform=transform))
 
-        train_dataset = ImageDataset(root_dir=train_path, transform=transform)
-        validate_dataset = ImageDataset(root_dir=validate_path, transform=transform)
-        test_dataset = ImageDataset(root_dir=test_path, transform=transform)
+        # Make a combined training dataset and then split into training and validation
+        combined_dataset = ConcatDataset(image_datasets)
+        train_size = int(0.8 * len(combined_dataset))
+        validate_size = len(combined_dataset) - train_size
+        train_dataset, validate_dataset = random_split(
+            combined_dataset, [train_size, validate_size]
+        )
+        test_dataset = ImageDataset(csv_path="./Data/Test.csv", transform=transform)
 
+        # Create dataloaders
         self.train_loader = DataLoader(
             dataset=train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            collate_fn=self._collate_fn,
         )
         self.validate_loader = DataLoader(
             dataset=validate_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            collate_fn=self._collate_fn,
         )
         self.test_loader = DataLoader(
             dataset=test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            collate_fn=self._collate_fn,
         )
 
         if do_pca:
-            # Collect all images from the training set for PCA
-            train_images = []
-            labels = []
-            for images, label_batch in self.train_loader:
-                labels.append(label_batch)
-                train_images.append(
-                    images.view(images.size(0), -1)
-                )  # Flatten each image
-            train_matrix = torch.cat(train_images).numpy()
+            # 1. Load PCA datasets
+            train_data = torch.load(f"./Data/pca/{n_components}/X_train.pt")
+            train_labels = torch.load(f"./Data/pca/{n_components}/y_train.pt")
+            validate_data = torch.load(f"./Data/pca/{n_components}/X_validate.pt")
+            validate_labels = torch.load(f"./Data/pca/{n_components}/y_validate.pt")
+            test_data = torch.load(f"./Data/pca/{n_components}/X_test.pt")
+            test_labels = torch.load(f"./Data/pca/{n_components}/y_test.pt")
 
-            # Standardize the training data. This scaler will be used to standardize the validation and testing datasets
-            scaler = StandardScaler()
-            train_standardized = scaler.fit_transform(train_matrix)
+            # 2. Create Tensor Datasets
+            train_dataset = TensorDataset(train_data, train_labels)
+            validate_dataset = TensorDataset(validate_data, validate_labels)
+            test_dataset = TensorDataset(test_data, test_labels)
 
-            # Perform PCA on the training data
-            pca = PCA(n_components=n_components)
-            train_pca = pca.fit_transform(train_standardized)
-            train_pca = torch.tensor(train_pca)
-            train_labels = torch.cat(labels)
-
-            # Perform PCA on the validation and testing data using the training scaler
-            validate_pca, validate_labels = self._transform_to_pca(
-                loader=self.validate_loader, scaler=scaler, pca=pca
-            )
-            test_pca, test_labels = self._transform_to_pca(
-                loader=self.test_loader, scaler=scaler, pca=pca
-            )
-
-            # Update dataloaders with PCA-transformed versions
+            # 3. Update dataloaders with PCA-transformed versions
             self.train_loader = DataLoader(
-                dataset=TensorDataset(train_pca, train_labels),
+                dataset=train_dataset,
                 batch_size=self.batch_size,
                 shuffle=True,
-                collate_fn=self._collate_fn,
             )
             self.validate_loader = DataLoader(
-                dataset=TensorDataset(validate_pca, validate_labels),
+                dataset=validate_dataset,
                 batch_size=self.batch_size,
                 shuffle=False,
-                collate_fn=self._collate_fn,
             )
             self.test_loader = DataLoader(
-                dataset=TensorDataset(test_pca, test_labels),
+                dataset=test_dataset,
                 batch_size=self.batch_size,
                 shuffle=False,
-                collate_fn=self._collate_fn,
             )
 
     def create_model(self, model: BaseModel):
         self.model = model
         self.model.model_init(logger=self.logger)
 
-    def _transform_to_pca(self, loader: DataLoader, scaler: StandardScaler, pca: PCA):
+    def _transform_to_pca(
+        self, loader: DataLoader, scaler: StandardScaler, ipca: IncrementalPCA
+    ):
         # Collect all images from the training set for PCA
-        pca_images = []
-        labels = []
-        for images, label_batch in loader:
-            labels.append(label_batch)
-            pca_images.append(images.view(images.size(0), -1))  # Flatten each image
-        matrix = torch.cat(pca_images).numpy()
-        standardized = scaler.transform(matrix)
-        pca_transformed = pca.transform(standardized)
+        transformed_list = []
+        label_list = []
+        for images, labels in tqdm(loader, "Fitting PCA for dataset"):
+            batch_np = images.view(images.size(0), -1).numpy()
+            batch_scaled = scaler.transform(batch_np)
+            batch_pca = ipca.transform(batch_scaled)
+            transformed_list.append(batch_pca)
+            label_list.append(labels.numpy())
 
-        return torch.tensor(pca_transformed), torch.cat(labels)
+        # Concatenate all batches
+        X_transformed = np.concatenate(transformed_list, axis=0)
+        y = np.concatenate(label_list, axis=0)
 
-    def _collate_fn(self, batch):
-        # Filter out images that don't have labels
-        batch = [item for item in batch if item is not None]
-        if len(batch) == 0:
-            return None
-        images, labels = zip(*batch)
-        return torch.stack(images), torch.tensor(labels)
+        # Convert to torch tensors
+        X_transformed = torch.from_numpy(X_transformed).float()
+        y = torch.from_numpy(y).long()
+
+        return X_transformed, y
+
+    def _load_images_in_batches(paths, batch_size: int = 500):
+        """Generator that yields batches of flattened images"""
+        for i in range(0, len(paths), batch_size):
+            batch_paths = paths[i : i + batch_size]
+            batch_data = []
+            for p in batch_paths:
+                img = Image.open(p).convert("RGB")

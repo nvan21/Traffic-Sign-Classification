@@ -1,36 +1,49 @@
 import os
+import csv
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torchvision import transforms
 
 
 class ImageDataset(Dataset):
-    def __init__(self, root_dir: str, transform=transforms):
-        self.image_dir = os.path.join(root_dir, "images")
-        self.label_dir = os.path.join(root_dir, "labels")
+    def __init__(self, csv_path: str, transform=transforms):
         self.transform = transform
+        self.data = []
 
-        self.image_files = sorted(os.listdir(self.image_dir))
-        self.label_files = sorted(os.listdir(self.label_dir))
+        with open(csv_path, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Each row is a dict:
+                # {
+                #   'Width': str_value,
+                #   'Height': str_value,
+                #   'Roi.X1': str_value,
+                #   'Roi.Y1': str_value,
+                #   'Roi.X2': str_value,
+                #   'Roi.Y2': str_value,
+                #   'ClassId': str_value,
+                #   'Path': str_value
+                # }
+                self.data.append(row)
 
     def __len__(self):
-        return len(self.image_files)
+        return len(self.data)
 
     def __getitem__(self, idx: int):
-        # Load image
-        img_path = os.path.join(self.image_dir, self.image_files[idx])
-        img = Image.open(img_path).convert("RGB")
+        row = self.data[idx]
 
-        # Load label
-        label_path = os.path.join(self.label_dir, self.label_files[idx])
-        with open(label_path, "r") as f:
-            # Read the class label
-            try:
-                class_id = int(f.readline().split()[0])
-            except:
-                return None
+        # Extract the image path and label
+        img_path = os.path.join(
+            "/work/flemingc/nvan21/projects/COMS_573_Project/Data", row["Path"]
+        )
+        class_id = int(row["ClassId"])  # convert label to int if necessary
 
-        # Apply transformations
-        img = self.transform(img)
+        # Load the image
+        image = Image.open(img_path).convert("RGB")
 
-        return img, class_id
+        # Apply any transforms
+        if self.transform:
+            image = self.transform(image)
+
+        # Return image and its class label
+        return image, class_id

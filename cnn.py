@@ -18,7 +18,7 @@ class CNN(BaseModel, nn.Module):
             (32, 64, 3, 1, 1),
             (64, 128, 3, 1, 1),
         ]
-        self.fc_layers = [(128 * 14 * 14, 1024), (1024, 256), (256, 15)]
+        self.fc_layers = [(128 * 14 * 14, 1024), (1024, 256), (256, 43)]
         self.dropout_rate = 0.2
         self.learning_rate = 0.001
         self.num_epochs = 10
@@ -140,7 +140,7 @@ class CNN(BaseModel, nn.Module):
         total_inference_time = 0
 
         with torch.no_grad():
-            for images, labels in test_loader:
+            for images, labels in tqdm(test_loader, desc=f"Testing"):
                 images, labels = images.to(self.device), labels.to(self.device)
 
                 # Forward pass with inference time calculation
@@ -156,7 +156,7 @@ class CNN(BaseModel, nn.Module):
                 y_true.append(labels.cpu().numpy())
                 y_pred.append(preds.cpu().numpy())
 
-        print(f"Testing accuracy: {correct / total * 100:.2f}")
+        print(f"Testing accuracy: {correct / total * 100:.2f}%")
 
         y_true = np.concatenate(y_true)
         y_pred = np.concatenate(y_pred)

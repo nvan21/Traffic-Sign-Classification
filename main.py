@@ -3,7 +3,9 @@ from experiment import Experiment, EXPERIMENTS
 
 
 for id, args in EXPERIMENTS.items():
-    exp = Experiment(id=id, data_path=args["data_path"], batch_size=args["batch_size"])
+    exp = Experiment(
+        id=id, data_paths=args["data_paths"], batch_size=args["batch_size"]
+    )
     exp.preprocessing(
         transform=args["transform"],
         do_pca=args.get("do_pca", False),
