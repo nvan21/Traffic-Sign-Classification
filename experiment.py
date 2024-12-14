@@ -1,5 +1,3 @@
-import pathlib
-import re
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, TensorDataset, ConcatDataset, random_split
 import torch
@@ -40,31 +38,31 @@ RESNET_TRANSFORM = transforms.Compose(
     ]
 )
 EXPERIMENTS = {
-    # "base_cnn": {
-    #     "data_paths": DATA_PATHS,
-    #     "save_path": SAVE_PATH,
-    #     "batch_size": 64,
-    #     "transform": BASE_TRANSFORM,
-    #     "model": CNN(),
-    # },
-    # "base_svm": {
-    #     "data_paths": DATA_PATHS,
-    #     "save_path": SAVE_PATH,
-    #     "batch_size": 64,
-    #     "transform": BASE_TRANSFORM,
-    #     "do_pca": True,
-    #     "n_components": 150,
-    #     "model": SVM(),
-    # },
-    # "base_knn": {
-    #     "data_paths": DATA_PATHS,
-    #     "save_path": SAVE_PATH,
-    #     "batch_size": 64,
-    #     "transform": BASE_TRANSFORM,
-    #     "do_pca": True,
-    #     "n_components": 150,
-    #     "model": KNN(),
-    # },
+    "base_cnn": {
+        "data_paths": DATA_PATHS,
+        "save_path": SAVE_PATH,
+        "batch_size": 64,
+        "transform": BASE_TRANSFORM,
+        "model": CNN(),
+    },
+    "base_svm": {
+        "data_paths": DATA_PATHS,
+        "save_path": SAVE_PATH,
+        "batch_size": 64,
+        "transform": BASE_TRANSFORM,
+        "do_pca": True,
+        "n_components": 150,
+        "model": SVM(),
+    },
+    "base_knn": {
+        "data_paths": DATA_PATHS,
+        "save_path": SAVE_PATH,
+        "batch_size": 64,
+        "transform": BASE_TRANSFORM,
+        "do_pca": True,
+        "n_components": 150,
+        "model": KNN(),
+    },
     "base_resnet": {
         "data_paths": DATA_PATHS,
         "save_path": SAVE_PATH,
