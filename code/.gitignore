@@ -1,0 +1,5 @@
+data/
+Data/
+__pycache__/
+**/model.pkl
+**/weights.pth
