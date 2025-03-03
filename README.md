@@ -1,6 +1,6 @@
 # Traffic Sign Recognition with Machine Learning
 
-This repository contains the code for my final project in COMS 5730 Machine Learning course. The project compares the performance of different machine learning and deep learning models on the German Traffic Sign Recognition Benchmark (GTSRB) under challenging conditions, particularly focusing on occlusion scenarios.
+This repository contains the code for our final project in Iowa State University's COMS 5730 Machine Learning course. The project compares the performance of different machine learning and deep learning models on the German Traffic Sign Recognition Benchmark (GTSRB) under challenging conditions, particularly focusing on occlusion scenarios.
 
 ## Dataset
 
