@@ -4,7 +4,7 @@ This repository contains the code for my final project in COMS 5730 Machine Lear
 
 ## Dataset
 
-The project uses the [German Traffic Sign Recognition Benchmark (GTSRB)](INSERT_KAGGLE_LINK_HERE) dataset, which contains over 50,000 images of 43 different traffic sign classes. The images are real-world photos taken under various lighting and weather conditions, with the dataset being used widely in traffic sign recognition research.
+The project uses the [German Traffic Sign Recognition Benchmark (GTSRB)](https://www.kaggle.com/datasets/meowmeowmeowmeowmeow/gtsrb-german-traffic-sign) dataset, which contains over 50,000 images of 43 different traffic sign classes. The images are real-world photos taken under various lighting and weather conditions, with the dataset being used widely in traffic sign recognition research.
 
 ## Project Overview
 
@@ -68,14 +68,6 @@ Our custom CNN architecture consists of stacked convolutional layers with batch 
 
 ![Custom CNN Architecture](assets/cnn_architecture.png)
 
-The architecture includes:
-
-- 5 convolutional layers with increasing filter sizes (16, 32, 64, 128)
-- Batch normalization after each convolutional layer
-- Dropout with 0.2 probability for regularization
-- Max pooling to reduce dimensionality
-- Three fully connected layers (1024, 256, 43 output classes)
-
 ## Experimental Results
 
 Our experiments revealed significant differences in model performance:
@@ -87,6 +79,7 @@ Our experiments revealed significant differences in model performance:
 - **ViT**: Obtained 91.77% accuracy
 - **SVM**: Achieved 73.23% accuracy
 - **KNN**: Lowest performer with 50.51% accuracy
+  ![Testing Accuracy](assets/testing_accuracy.png)
 
 ### Inference Time
 
@@ -95,9 +88,7 @@ Our experiments revealed significant differences in model performance:
 - **KNN**: 1.3251 ms
 - **ViT**: 3.9087 ms
 - **ResNet-50**: Slowest at 4.5004 ms per prediction
-
-![Testing Accuracy](assets/testing_accuracy.png.png)
-![Inference Time](assets/inference_time.png.png)
+  ![Inference Time](assets/inference_time.png)
 
 ### Key Findings
 
